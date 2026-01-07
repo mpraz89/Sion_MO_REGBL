@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Portail Cohérence EGID/MO</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        .panel { position: absolute; background: white; margin: 10px; padding: 10px; z-index: 1; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <h3>Contrôle de Cohérence</h3>
+        <div id="stats">Chargement des données...</div>
+    </div>
+    <div id="map"></div>
+
+    <script>
+        // 1. Connexion Supabase
+        const supabase = supabase.createClient('URL_VOTRE_PROJET', 'CLE_ANON_PUBLIQUE');
+
+        // 2. Initialisation Carte
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: 'https://demotiles.maplibre.org/style.json', // Ou fond de carte Swisstopo
+            center: [6.63, 46.51], // Coordonnées par défaut (ex: Lausanne)
+            zoom: 12
+        });
+
+        map.on('load', async () => {
+            // 3. Récupération des données via la fonction RPC
+            const { data, error } = await supabase.rpc('get_erreurs_geojson');
+            
+            if (data) {
+                document.getElementById('stats').innerText = `${data.features.length} erreurs détectées`;
+
+                map.addSource('erreurs', { type: 'geojson', data: data });
+                
+                // 4. Affichage des points (EDID problématiques)
+                map.addLayer({
+                    'id': 'points-erreurs',
+                    'type': 'circle',
+                    'source': 'erreurs',
+                    'paint': {
+                        'circle-radius': 6,
+                        'circle-color': '#ff4d4d',
+                        'circle-stroke-width': 2,
+                        'circle-stroke-color': '#ffffff'
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
